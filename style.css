@@ -15,12 +15,15 @@ body {
     font-family: 'Space Mono', monospace;
     margin: 0;
     padding: 0;
-    height: 100vh;
+    height: 100vh; /* Full viewport height */
     width: 100vw;
+    /* FIX 1: Allow vertical scroll (which happens in .screen), but hide horizontal overflow at the root */
     overflow-y: hidden; 
     overflow-x: hidden; 
     display: flex;
     flex-direction: column;
+    
+    /* CRT EFFECT SETUP */
     position: relative; 
 }
 
@@ -29,221 +32,1414 @@ body {
     display: grid;
     grid-template-rows: 60px 1fr 100px; /* Header, Main Content, Footer/Nav */
     height: 100%;
-    padding: 20px;
+    padding: 20px; /* Desktop padding */
     box-sizing: border-box;
-    z-index: 2;
-    position: relative;
+    gap: 20px;
+    background: radial-gradient(circle at center, #0b1624 0%, #050a10 100%);
 }
 
-/* --- HEADER --- */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 10px;
+    padding-bottom: 5px;
 }
 
 header h1 {
+    font-size: 1.5rem;
     margin: 0;
-    font-size: 1.2rem;
-    letter-spacing: 2px;
 }
 
 .clock {
     font-size: 1.2rem;
-    font-weight: bold;
+    color: var(--warning-color);
 }
 
-/* --- VIEWPORT & SCREENS --- */
+/* --- VIEWPORT/SCREEN LOGIC --- */
 #viewport {
     position: relative;
     overflow: hidden;
-    margin: 20px 0;
+    height: 100%;
+    box-sizing: border-box;
+    /* Use grid to manage the screens for easy switching/positioning */
+    display: grid;
+    grid-template-areas: "screen";
 }
 
 .screen {
-    display: none;
+    grid-area: screen;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+    padding: 10px;
+    overflow-y: auto; /* Enable scrolling for individual screens */
     height: 100%;
-    width: 100%;
-    overflow-y: auto;
-    animation: fadeIn 0.3s ease-out;
+    box-sizing: border-box;
 }
 
 .screen.active {
-    display: block;
+    opacity: 1;
+    pointer-events: all;
 }
 
-/* TACTICAL (ENGINEERING) SPECIFIC LAYOUT */
-#screen-engineering.active {
-    display: flex;
-    flex-direction: column;
+/* NEW CLASS: For screens that need their content (like the log) to fill all available space */
+.full-height-flex {
+    display: flex; /* Makes it a flex container */
+    flex-direction: column; /* Stacks children vertically */
+    height: 100%; /* Ensures it uses the full height of its parent (#viewport) */
+    box-sizing: border-box; 
+    gap: 10px; /* Provides separation between H2 and the log box */
 }
 
-/* --- LOGIN SCREEN --- */
-#login-screen {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: var(--bg-color);
-    z-index: 100;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.screen h2 {
+    border-bottom: 1px solid rgba(0, 240, 255, 0.5);
+    padding-bottom: 5px;
+    margin-top: 0;
+    font-size: 1.2rem;
 }
 
-.login-box {
-    border: 2px solid var(--primary-color);
-    padding: 40px;
-    background: var(--panel-bg);
-    max-width: 400px;
-    text-align: center;
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
-}
-
-.login-box input {
-    width: 100%;
-    background: black;
+/* --- GLOBAL STYLES --- */
+.status-card {
+    background-color: var(--panel-bg);
     border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    padding: 10px;
-    margin: 10px 0;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.status-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: var(--warning-color);
+    border-bottom: 1px dashed rgba(255, 255, 0, 0.2);
+    padding-bottom: 5px;
+}
+
+/* Forms and Inputs */
+input[type="text"], 
+input[type="password"], 
+button {
     font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    border: 1px solid var(--primary-color);
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+    padding: 5px;
+    margin-left: 5px;
 }
 
-/* --- NAV BAR (FOOTER) - UPDATED FOR 3 BUTTONS --- */
-#nav-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 2px solid var(--primary-color);
-    padding-top: 10px;
-    gap: 15px;
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--warning-color);
+    box-shadow: 0 0 5px var(--warning-color);
 }
 
-.nav-btn {
-    flex: 1; /* Key change: distribute remaining 3 buttons equally */
+.action-btn {
     background: none;
     border: 1px solid var(--primary-color);
     color: var(--primary-color);
-    padding: 15px 0;
     cursor: pointer;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    position: relative;
+    padding: 8px 15px;
+    transition: background-color 0.2s;
+    margin-top: 10px;
+}
+
+.action-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+/* --- SCREEN: DASHBOARD LAYOUT (MODIFIED TO STACKED) --- */
+.dashboard-content-grid {
+    display: flex; /* Changed from grid */
+    flex-direction: column; /* Stack vertically: Status on top, Log on bottom */
+    gap: 20px;
+    height: 100%; 
+}
+
+/* --- SCREEN: DASHBOARD ELEMENTS --- */
+.icon-status-grid {
+    /* MODIFIED: Now a horizontal flex row */
+    display: flex;
+    flex-direction: row; 
+    
+    /* Ensure the cards are spaced out across the width */
+    justify-content: space-between;
+    
+    /* Allow wrapping if needed, but not intended for this use case */
+    flex-wrap: nowrap; 
+    
+    /* Only take the height needed for the content */
+    height: auto; 
+    
+    /* Remove obsolete grid properties */
+    grid-template-rows: none; 
+    grid-template-columns: none; 
+    gap: 10px; 
+    
+    /* Restore smaller font sizes from previous step */
+    align-content: stretch; 
+}
+
+.icon-card {
+    background-color: var(--panel-bg);
+    border: 2px solid var(--warning-color);
+    padding: 8px; 
+    text-align: center;
+    /* MODIFIED: Cards now share horizontal space */
+    flex-basis: calc(20% - 10px); 
+    min-width: 0; 
+}
+
+.icon-card.critical { border-color: var(--alert-color); }
+.icon-card.warning { border-color: var(--warning-color); }
+.icon-card.nominal { border-color: var(--primary-color); }
+
+/* Removed .icon-card.wide rule as it's no longer used in 1-column layout */
+
+.icon-symbol {
+    font-size: 2.0rem; 
+    display: block;
+    line-height: 1;
+    margin-bottom: 3px; 
+}
+
+.icon-label {
+    font-size: 0.7rem; 
+    opacity: 0.7;
+    margin-bottom: 3px; 
+}
+
+.icon-status-text {
+    font-size: 0.9rem; 
+    font-weight: bold;
+}
+
+/* O2 Gauge Styling */
+.gauge-container {
+    height: 15px;
+    width: 80%;
+    margin: 5px auto;
+    border: 1px solid var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.gauge-fill {
+    height: 100%;
+    transition: width 0.5s ease-out, background-color 0.5s ease-out;
+}
+
+/* Log Container and Prompt (FIXED: Added #commsLogContainer for full height) */
+#log-container, 
+#commsLogContainer { /* ADDED #commsLogContainer */
+    /* MODIFIED: Take all remaining vertical space */
+    flex-grow: 1; 
+    
+    display: flex;
+    flex-direction: column;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--primary-color);
+    /* Pushes content to the bottom, ensuring the input prompt is visible */
+    justify-content: flex-end; 
+    min-height: 0; /* Critical for Flexbox in Chrome/Firefox */
+}
+
+#terminalLog,
+#commsLog { /* ADDED #commsLog and updated layout properties */
+    /* FIX: The most reliable Flexbox scrolling fix: flex: 1 1 0; */
+    flex: 1 1 0;
+    
+    /* REVERTED FONT SIZE */
+    font-size: 0.85rem; 
+    
+    /* TIGHTENED LINE HEIGHT: Keeps text packed to avoid the "scrunched" look */
+    line-height: 1.1; 
+    
+    /* TIGHTENED PADDING: Maximizes space */
+    padding: 8px; 
+    margin: 0;
+    
+    /* Ensure padding/border is included in the element's height calculation */
+    box-sizing: border-box; 
+    
+    overflow-y: scroll;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 0; 
+}
+
+.command-prompt {
+    display: flex;
+    border-top: 1px solid var(--primary-color);
+    padding: 5px;
+    background-color: #000;
+}
+
+.command-prompt span {
+    color: var(--warning-color);
+    margin-right: 5px;
+}
+
+#commandInput,
+#commsInput { /* ADDED #commsInput to inherit the full-width input style */
+    flex-grow: 1;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+}
+#commandInput:focus,
+#commsInput:focus { /* ADDED #commsInput:focus to inherit the focus style */
+    box-shadow: none;
+}
+
+/* --- SCREEN: NAV CORE --- */
+#nav-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    height: calc(100% - 30px); /* Adjust for H2 height */
+    overflow-y: auto;
+}
+
+#navScanOutput {
+    white-space: pre;
+    font-size: 0.8rem;
+    color: var(--warning-color);
+    padding: 10px;
+    background-color: var(--bg-color);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    min-height: 150px;
+}
+
+#navClues {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+#navClues li {
+    margin-bottom: 5px;
+}
+
+/* START: CSS for smaller, aligned Nav Logic inputs */
+#navLogicPanel div {
+    /* Use flex to align label and input on the same line and space them out */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#navLogicPanel input[type="text"] {
+    /* Set a fixed, smaller width for the input boxes */
+    width: 150px; 
+    text-align: right;
+    box-sizing: border-box;
+}
+/* END: CSS */
+
+
+/* --- SCREEN: PERSONNEL (DESKTOP) --- */
+#personnel-main-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+}
+
+.personnel-file-card {
+    height: 100%;
+}
+
+.personnel-content-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 15px;
+}
+
+#photoContainer {
+    width: 100%;
+    height: 180px;
     overflow: hidden;
+    border: 1px solid var(--primary-color);
+    background-color: #000;
+}
+
+#personnelPhoto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.access-controls {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.access-controls input {
+    margin-left: 0;
+    margin-bottom: 5px;
+}
+
+.personnel-text-display {
+    overflow-y: auto;
+    background-color: var(--bg-color);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+#personnelFileDisplay {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 10px;
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+/* --- SCREEN: ENGINEERING --- */
+.engineering-column {
+    display: flex;
+    flex-direction: column;
+}
+.engineering-column .status-card {
+    flex-grow: 1;
+}
+
+#hull-diagram-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-top: 10px;
+    border: 1px dashed var(--alert-color);
+}
+
+
+/* --- NAV BAR (FOOTER) --- */
+#nav-bar {
+    display: flex;
+    justify-content: space-between; /* Distributes space evenly */
+    align-items: center;
+    border-top: 2px solid var(--primary-color);
+    padding-top: 10px;
+    gap: 10px;
+    width: 100%; /* Ensure it spans the container */
+}
+
+.nav-btn {
+    flex: 1;          /* This forces all buttons to take up equal width */
+    text-align: center;
+    background: none;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 10px 0;   /* Padding top/bottom, 0 on sides since flex handles width */
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s, color 0.2s;
+    white-space: nowrap; /* Prevents text from wrapping */
 }
 
 .nav-btn:hover:not(:disabled), .nav-btn.active {
     background-color: var(--primary-color);
     color: var(--bg-color);
-    box-shadow: 0 0 15px var(--primary-color);
 }
 
-.nav-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+/* --- CRT EFFECTS --- */
+#console-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9998; /* Below scanline, above content */
+
+    /* Grain/Noise Effect (Subtle dots) */
+    background: repeating-radial-gradient(
+        #000000 0%,
+        #111111 0.0001%,
+        transparent 0.0002%
+    );
+    opacity: 0.05;
 }
 
-/* --- TACTICAL GRID --- */
+#console-container::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9997; 
+
+    background: 
+        radial-gradient(
+            ellipse at center, 
+            rgba(0, 0, 0, 0) 60%, 
+            rgba(0, 0, 0, 0.4) 100%
+        );
+}
+
+#vertical-scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.2; 
+    
+    background: linear-gradient(to bottom, 
+        transparent, 
+        rgba(0, 240, 255, 0.2) 3px, 
+        transparent 100px
+    );
+    
+    animation: horizontalSweep 12s linear infinite; 
+}
+
+@keyframes horizontalSweep { 
+    0% { transform: translateY(-10vh); } 
+    100% { transform: translateY(110vh); } 
+}
+
+/* --- RESPONSIVE OVERRIDES (MOBILE/SMALL SCREENS) --- */
+@media (max-width: 700px) {
+    /* FIX 2: Reduce main container padding to prevent overflow */
+    #console-container {
+        padding: 10px; 
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Reduce padding for smaller screens */
+    .screen {
+        padding: 5px;
+    }
+    
+    /* FIX 3: Ensure icon status grid doesn't force min width */
+    .icon-status-grid {
+        flex-wrap: wrap; /* Allow status cards to wrap if too many */
+        min-width: 0;
+    }
+    
+    .icon-card {
+        flex-basis: 48%; /* Adjust for 2 cards per row on mobile */
+        margin-bottom: 10px;
+    }
+
+    /* 1. PERSONNEL: Stack the main two boxes (Roster above File Access) */
+    #personnel-main-grid {
+        grid-template-columns: 1fr; /* Stack vertically */
+        gap: 15px;
+        overflow-y: auto; /* Allow scrolling for the whole panel */
+        min-width: 0; /* CRITICAL: Allows grid to shrink to 100% on mobile */
+        box-sizing: border-box;
+    }
+    
+    /* 1a. FIX: Ensure the file card takes 100% width and has no height constraint in stacked mode */
+    .personnel-file-card {
+        width: 100%; 
+        height: auto;
+        box-sizing: border-box;
+    }
+
+    /* 2. PERSONNEL: Stack Photo/Controls above File Text Output */
+    .personnel-content-grid {
+        grid-template-columns: 1fr; /* Stack Photo/Controls and Text Display */
+        gap: 15px;
+        min-width: 0; 
+        box-sizing: border-box;
+    }
+
+    /* 3. PERSONNEL: Adjust photo container height for mobile and guarantee width */
+    #photoContainer {
+        width: 100%;
+        max-width: 100%;
+        height: 200px; /* Reduced height to save screen space */
+        margin-top: 0; 
+        box-sizing: border-box;
+    }
+    
+    /* 4. PERSONNEL: Maximize height of the photo within the container */
+    #personnelPhoto {
+        object-fit: contain; /* Scales the image to fit entirely, prioritizing height */
+        margin: 0 auto; 
+    }
+    
+    /* 5. PERSONNEL: Text output fix to prevent horizontal overflow and maximize space */
+    .personnel-text-display {
+        width: 100%; 
+        min-width: 0; /* CRITICAL: Allows content to shrink */
+        box-sizing: border-box;
+        max-width: 100%; 
+        padding: 0; 
+    }
+    
+    /* 6. PERSONNEL: Ensure the inner text element is full width and handles wrap */
+    #personnelFileDisplay {
+        width: 100%; 
+        box-sizing: border-box;
+        padding: 10px; /* Restore padding here */
+        max-width: 100%; 
+    }
+
+    /* Optional: Stack Nav Core grid on mobile too for better viewing */
+    #nav-main-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* === NAV BAR STACKING (FOOTER) === */
+    #nav-bar {
+        flex-wrap: wrap; /* Allows buttons to drop to the next line */
+        justify-content: space-around; /* Space them out */
+        height: auto; /* Allow the nav bar to grow in height for two rows */
+        padding-top: 5px; /* Reduce padding for stacked layout */
+    }
+
+    .nav-btn {
+        flex-basis: 45%; /* Each button takes up slightly less than 50% for padding/gap */
+        margin: 5px 2px; /* Add vertical margin for spacing between rows */
+        padding: 8px 5px; /* Adjust padding to save horizontal space */
+        font-size: 0.8rem; /* Slightly smaller font to fit more text */
+    }
+}
+
+/* --- NEW: GLITCH/SEIZURE EFFECT STYLES (REVISED) --- */
+body.glitch-active {
+    /* Increased distortion and added hue rotation */
+    filter: blur(3px) contrast(1.5) hue-rotate(5deg);
+    
+    /* MODIFIED: Increased physical screen shift horizontally (translateX) and increased skew */
+    transform: perspective(800px) translateX(5px) skewX(2deg);
+    
+    /* REMOVED TRANSITION for instantaneous effect */
+    transition: none; 
+}
+
+body.glitch-transition {
+    /* MODIFIED: Much faster recovery time (0.05s) */
+    transition: transform 0.05s ease-out, filter 0.05s ease-out;
+}
+
+
+/* === LOGIN SCREEN STYLES === */
+#login-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100; /* Ensure it is on top of the main UI */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.login-box {
+    background-color: var(--panel-bg);
+    border: 2px solid var(--primary-color);
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 0 20px var(--primary-color);
+}
+
+.login-box h2 {
+    color: var(--warning-color);
+    margin-bottom: 20px;
+}
+
+.login-box p {
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+    opacity: 0.8;
+}
+
+.login-box label {
+    display: block;
+    text-align: left;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+}
+
+.login-box input[type="email"], 
+.login-box input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #000;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    font-family: 'Space Mono', monospace;
+    box-sizing: border-box;
+    margin-left: 0;
+}
+
+#login-button {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 10px 20px;
+    margin-top: 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    transition: background-color 0.1s;
+}
+
+#login-button:hover {
+    background-color: #00ffff;
+}
+
+.login-note {
+    font-size: 0.7rem !important;
+    opacity: 0.5 !important;
+    margin-top: 25px !important;
+}
+
+#login-message {
+    color: var(--alert-color);
+    font-size: 0.8rem;
+    margin-top: 10px;
+    min-height: 1.5em; /* Reserve space for error message */
+}
+
+/* --- NEW: AUTHENTICATION STYLES (REQUIRED FOR LOGIN SCREEN) --- */
+#login-screen {
+    /* Use position absolute to overlay main content inside #console-container */
+    position: absolute; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(5, 10, 16, 0.98); /* Deep dark background */
+    z-index: 1000; /* Ensure it is on top of everything */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Animation controls */
+    opacity: 1; 
+    pointer-events: all;
+    transition: opacity 0.3s ease-in-out;
+}
+
+#login-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Style for the main container when console access is revoked/locked */
+#console-container.locked #viewport {
+    filter: blur(5px) opacity(0.3); /* Blur the content behind the login screen */
+    pointer-events: none;
+    user-select: none;
+}
+
+#console-container.locked #nav-bar {
+    filter: blur(5px) opacity(0.3);
+    pointer-events: none;
+    user-select: none;
+}
+
+
+.login-box {
+    background-color: var(--panel-bg);
+    border: 2px solid var(--primary-color);
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 0 20px var(--primary-color);
+}
+
+.login-box h2 {
+    color: var(--warning-color);
+    margin-bottom: 20px;
+}
+
+.login-box p {
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+    opacity: 0.8;
+}
+
+.login-box label {
+    display: block;
+    text-align: left;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+}
+
+.login-box input[type="text"], 
+.login-box input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #000;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    font-family: 'Space Mono', monospace;
+    box-sizing: border-box;
+    margin-left: 0;
+}
+
+#login-button {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+#login-button:hover {
+    background-color: var(--warning-color);
+    color: var(--bg-color);
+}
+
+.login-note {
+    margin-top: 20px;
+    font-size: 0.7rem !important; 
+    opacity: 0.5 !important;
+}
+
+.error-message {
+    color: var(--alert-color);
+    margin-top: 10px;
+    font-size: 0.8rem;
+}
+
+/* --- NEW COMMS SCREEN STYLES --- */
+
+/* MODIFIED COMMS GRID LAYOUT TO STACK VERTICALLY */
+.comms-grid {
+    display: flex; 
+    flex-direction: column; 
+    height: 100%; 
+    gap: 20px;
+}
+
+/* Ensure the header spans all columns */
+.comms-grid h2 {
+    /* No grid-area needed in flex layout */
+    margin-bottom: 0; 
+}
+
+/* Assign areas to the new panels */
+#commsLeftPanel {
+    /* No grid-area needed in flex layout */
+    height: auto; 
+    max-height: 25%; /* To ensure it doesn't take up too much vertical space */
+    display: flex;
+    flex-direction: column;
+    /* FIX: Remove the default margin-bottom from .status-card so the box stretches to 100% of the grid row height */
+    margin-bottom: 0; 
+}
+
+#commsTerminalWrapper {
+    /* No grid-area needed in flex layout */
+    height: 100%; 
+    flex-grow: 1; /* Makes it fill the remaining vertical space */
+    display: flex;
+    flex-direction: column;
+}
+
+/* General styles for the comms panels (optional, but good practice) */
+.comms-panel {
+    min-height: 0; /* Ensures the flex/grid items can shrink */
+}
+
+/* Style for command entries in the new comms log */
+.comms-area .user-command {
+    color: var(--warning-color); /* Use a different color for user input in this log */
+    margin: 0;
+    padding: 0;
+}
+
+/* Style for system response in the new comms log */
+.comms-area .console-response {
+    color: var(--primary-color);
+    margin: 0 0 5px 0;
+    padding: 0;
+    white-space: pre-wrap; /* Ensures the multiline transmission text is preserved */
+}
+
+/* --- COMMS CHAT STYLES --- */
+
+#commsLogContainer {
+    /* Enable scrolling for the chat history */
+    overflow-y: auto; 
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-bottom: 0;
+}
+
+#commsLog {
+    /* Reset default pre tag styles for chat flow */
+    white-space: pre-wrap; 
+    font-family: 'Space Mono', monospace;
+    margin: 0;
+}
+
+.chat-msg {
+    margin-bottom: 12px;
+    padding: 8px;
+    border-left: 2px solid transparent;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* User Message Style */
+.chat-msg.user {
+    color: var(--warning-color); /* Yellow */
+    border-left-color: var(--warning-color);
+    background: rgba(255, 204, 0, 0.05);
+}
+
+/* AI Message Style */
+.chat-msg.ai {
+    color: var(--primary-color); /* Cyan */
+    border-left-color: var(--primary-color);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+/* Optimized Glitch Effect for Pilgrim-OS */
+.nav-btn, .action-btn, #login-button {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-color);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* The glitching layers created via CSS */
+.nav-btn::before, .nav-btn::after,
+.action-btn::before, .action-btn::after,
+#login-button::before, #login-button::after {
+    content: attr(data-text); /* Pulls text from HTML attribute */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-color);
+    display: none; /* Only shows on hover */
+}
+
+.nav-btn:hover::before, .action-btn:hover::before, #login-button:hover::before {
+    display: block;
+    left: 2px;
+    text-shadow: -2px 0 var(--alert-color);
+    clip-path: inset(44% 0 56% 0);
+    animation: glitch-anim 0.2s infinite linear alternate-reverse;
+}
+
+.nav-btn:hover::after, .action-btn:hover::after, #login-button:hover::after {
+    display: block;
+    left: -2px;
+    text-shadow: -2px 0 var(--primary-color);
+    clip-path: inset(10% 0 90% 0);
+    animation: glitch-anim 0.3s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim {
+    0% { clip-path: inset(80% 0 0 0); }
+    20% { clip-path: inset(20% 0 60% 0); }
+    40% { clip-path: inset(50% 0 30% 0); }
+    60% { clip-path: inset(10% 0 80% 0); }
+    80% { clip-path: inset(40% 0 40% 0); }
+    100% { clip-path: inset(80% 0 0 0); }
+}
+
+/* --- TACTICAL GRID SYSTEM --- */
 .tactical-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-rows: 1fr 1fr;
     gap: 15px;
     height: 100%;
 }
 
-.status-card {
-    background: var(--panel-bg);
-    border: 1px solid rgba(0, 240, 255, 0.3);
-    padding: 15px;
+.tactical-panel {
+    margin-bottom: 0 !important;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    position: relative;
+}
+
+.video-placeholder {
+    flex-grow: 1;
+    background: #000;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
     overflow: hidden;
+    color: var(--primary-color);
+    font-size: 0.7rem;
 }
 
-.tactical-panel h3 {
-    margin: 0 0 10px 0;
-    font-size: 0.8rem;
-    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+.rec-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--alert-color);
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    animation: blink 1s infinite;
 }
 
-/* --- RADAR EFFECT --- */
-.dual-radar-container {
-    display: flex;
-    justify-content: space-around;
-    height: 150px;
+.radar-container {
+    height: 200px;
+    width: 200px;
+    margin: auto;
+    border-radius: 50%;
+    border: 1px solid var(--primary-color);
+    position: relative;
+    background: radial-gradient(circle, #0a141e 0%, #050a10 100%);
+}
+
+.radar-sweep {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    border-right: 1px solid var(--primary-color);
+    border-top-right-radius: 100%;
+    transform-origin: bottom left;
+    bottom: 50%;
+    left: 50%;
+    animation: sweep 4s linear infinite;
+    background: linear-gradient(45deg, transparent 50%, rgba(0, 240, 255, 0.1) 100%);
+}
+
+.indicator-list { list-style: none; padding: 0; margin-top: 10px; }
+.indicator-list li { margin-bottom: 8px; font-size: 0.7rem; display: flex; align-items: center; }
+
+.status-led {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+.status-led.nominal { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+.status-led.warning { background: var(--warning-color); box-shadow: 0 0 5px var(--warning-color); }
+.status-led.critical { background: var(--alert-color); box-shadow: 0 0 5px var(--alert-color); }
+
+@keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+
+/* --- ADVANCED RADAR SYSTEM --- */
+:root {
+    --radar-sweep-color: #0ff;
+    --radar-dots: #001A1A;
+    --radar-lines: #003333;
+    --radar-bg: #000101;
+    --radar-speed: 6s; /* Slightly faster for action */
 }
 
 .radar-wrapper {
-    width: 140px;
-    height: 140px;
-    border: 1px solid var(--primary-color);
-    border-radius: 50%;
-    position: relative;
-    background: radial-gradient(circle, rgba(0,240,255,0.1) 0%, rgba(0,0,0,1) 70%);
+    background: transparent; 
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.radar-wrapper::after {
+#radar-custom {
+    width: 200px; /* Scaled down for the panel */
+    aspect-ratio: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to bottom, #f1f1f1, #9d9e9f);
+    box-shadow: inset 0 -2px 5px rgba(0,0,0,0.25), 0 5px 10px rgba(0,0,0,0.5);
+    border-radius: 50%;
+    z-index: 2;
+}
+
+#radar-custom::before, #radar-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 92%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+}
+
+#radar-custom::before {
+    z-index: -1;
+    background-color: var(--radar-bg);
+    background-image:
+        linear-gradient(to bottom, transparent 50%, rgba(0, 51, 51, 0.3) 50.5%, transparent 51%),
+        linear-gradient(to right, transparent 50%, rgba(0, 51, 51, 0.3) 50.5%, transparent 51%),
+        repeating-radial-gradient(rgba(0, 51, 51, 0.3) 0, transparent 1px 15px, rgba(0, 51, 51, 0.3) 16px);
+}
+
+#radar-custom::after {
+    background-image: conic-gradient(#000 90deg, var(--radar-sweep-color) 360deg);
+    mix-blend-mode: color-dodge;
+    animation: rotate-radar var(--radar-speed) linear infinite;
+}
+
+#targets-custom {
+    width: 90%;
+    height: 90%;
+    position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 65% 15%, var(--radar-dots), transparent 4px),
+        radial-gradient(circle at 20% 40%, var(--radar-dots), transparent 5px),
+        radial-gradient(circle at 55% 70%, var(--radar-dots), transparent 6px),
+        radial-gradient(circle at 80% 30%, var(--radar-dots), transparent 3px);
+    animation: move-targets 60s infinite linear;
+}
+
+@keyframes rotate-radar {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes move-targets {
+    from { background-position: 0 0; }
+    to { background-position: 0 120px; }
+}
+
+.ship-diagram-container {
+    flex-grow: 1;
+    width: 100%;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('hullstatusbackground.png');
+    background-size: 100% auto;
+    background-position: center;
+    background-repeat: no-repeat;
+    //background: #000000;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.05);
+    border-radius: 4px;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: hidden; /* Ensures nothing spills out */
+    position: relative
+}
+
+#ship-status-image {
+    max-height: 120px;
+    width: auto;
+    flex-shrink: 0;
+    filter: none;
+    object-fit: contain;
+}
+
+/* Container for side-by-side layout */
+.dual-radar-container {
+    width: 100%;
+    height: 100%;
+    /* Set the background image */
+    background-image: url('radarpanel.png');
+    background-size: 100% auto;
+    background-position: calc(50% + 2px) calc(50% - 5px);
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: relative; /* Useful if you want to absolute position targets later */
+    overflow: hidden;
+}
+
+/* Base Radar Scaling for Dual View */
+#radar-custom {
+    width: 80px; /* Reduced size to fit two side-by-side */
+    aspect-ratio: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to bottom, #f1f1f1, #9d9e9f);
+    box-shadow: inset 0 -1px 3px rgba(0,0,0,0.25), 0 3px 6px rgba(0,0,0,0.5);
+    border-radius: 50%;
+    z-index: 2;
+}
+
+/* --- CYAN RADAR (LEFT) --- */
+.radar-cyan::after {
+    background-image: conic-gradient(#000 90deg, #0ff 360deg);
+    mix-blend-mode: color-dodge;
+    animation: rotate-radar 6s linear infinite;
+}
+
+/* --- RED RADAR (RIGHT) --- */
+.radar-red {
+    --radar-sweep-color: rgba(255, 50, 50, 0.4);
+    border-color: var(--alert-color) !important;
+    position: relative; /* Essential for the ::after to stay inside the circle */
+}
+
+.radar-red::after {
+    content: ""; /* CRITICAL: The element won't appear without this */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    
+    /* Your Sweep Logic */
+    background-image: conic-gradient(transparent 90deg, #ff3333 360deg); 
+    mix-blend-mode: color-dodge;
+    
+    /* Animation must be defined elsewhere in your CSS */
+    animation: rotate-radar 4s linear infinite; 
+    
+    /* Ensure it sits above the background but below targets */
+    z-index: 1; 
+}
+
+/* Red Targets Styling */
+.targets-red {
+    background:
+        radial-gradient(circle at 30% 20%, #FF0000, transparent 4px),
+        radial-gradient(circle at 70% 60%, #FF0000, transparent 5px),
+        radial-gradient(circle at 40% 80%, #FF0000, transparent 6px);
+	animation: move-targets 30s linear infinite; 
+}
+
+/* Adjust the background grid color for the red radar */
+.radar-red::before {
+    background-color: #1a0000 !important; /* Dark red background */
+    background-image:
+        linear-gradient(to bottom, transparent 50%, rgba(255, 51, 51, 0.1) 50.5%, transparent 51%),
+        linear-gradient(to right, transparent 50%, rgba(255, 51, 51, 0.1) 50.5%, transparent 51%),
+        repeating-radial-gradient(rgba(255, 51, 51, 0.1) 0, transparent 1px 10px, rgba(255, 51, 51, 0.1) 11px) !important;
+}
+
+
+.video-placeholder {
+    height: 140px; /* Set your desired maximum height here */
+    width: 100%;   /* Fill the width of the column */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000; /* Black bars if image ratio doesn't match */
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    overflow: hidden;
+    position: relative;
+}
+
+.video-placeholder::after {
     content: "";
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, var(--primary-color) 0%, transparent 30%);
-    animation: radar-sweep 4s linear infinite;
-    opacity: 0.3;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    /* Noise texture using a radial gradient */
+    background-image: repeating-radial-gradient(
+        #ffffff 0 0.0001%, 
+        #000000 0 0.0002%
+    );
+    background-size: 4px 4px;
+    opacity: 0.15; /* Adjust this for more or less "static" */
+    pointer-events: none; /* Allows you to still click things underneath */
+    z-index: 2;
+    animation: static-flicker 0.2s infinite;
 }
 
-@keyframes radar-sweep {
+@keyframes static-flicker {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-1%, -1%); }
+    50% { transform: translate(1%, 1%); }
+    75% { transform: translate(-1%, 1%); }
+    100% { transform: translate(0, 0); }
+}
+
+
+
+.engine-image-container {
+    flex-grow: 1;
+    width: 100%;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('enginesstatusbackground.png');
+    background-size: 100% auto;
+    background-position: center;
+    background-repeat: no-repeat;
+    //background: #000000;
+    //border: 1px solid rgba(0, 240, 255, 0.2);
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.05);
+    border-radius: 4px;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: hidden; /* Ensures nothing spills out */
+    position: relative
+}
+
+#engines-status-image {
+    max-height: 130px;
+    width: auto;
+    flex-shrink: 0;
+    filter: none;
+    object-fit: contain;
+}
+
+/* Circular Indicator Styles */
+.outer_circle, .outer_circle_bars_l, .outer_circle_bars_r, 
+.inner_progress_circle, .inner_half_circle, .center_inner_circle_second,
+.center_inner_circle_3_dashed_verticle {
+    fill: transparent;
+    stroke: var(--primary-color);
+}
+
+.outer_circle { stroke-width: 2; stroke-dasharray: 7 1; }
+.outer_circle_bars_l { stroke-width: 7; stroke-dasharray: 0.4 7.6; stroke-dashoffset: 0.1; }
+.outer_circle_bars_r { stroke-width: 7; stroke-dasharray: 0.4 7.6; stroke-dashoffset: 1.4; }
+.inner_progress_circle { stroke-width: 7; stroke-dasharray: 7 1; }
+.inner_half_circle { stroke-width: 7; stroke-dasharray: 24.5 0.5; }
+
+.center_outer_circle, .center_inner_circle_3, .center_inner_circle_3_dashed, 
+.center_inner_circle_2, .center_inner_circle_1, .center_inner_circle_0 {
+    fill: transparent;
+    stroke: var(--primary-color);
+    opacity: 0.4; /* Slightly dimmed for depth */
+}
+
+.center_inner_circle_second {
+    stroke-width: 2;
+    stroke-dasharray: 5 95;
+    animation: centerInnerCircleSecond 20s linear infinite steps(4, end);
+}
+
+.center_inner_circle_0 {
+    stroke-width: 7;
+    stroke-dasharray: 0.3 0.7;
+    animation: centerInnerCircle0 40s linear infinite;
+}
+
+.small_rectangles { fill: var(--primary-color); opacity: 0.8; }
+
+@keyframes centerInnerCircleSecond {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 
-/* --- CRT & SCANLINE EFFECTS --- */
-body::before {
-    content: " ";
-    display: block;
+@keyframes centerInnerCircle0 {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.power-load-container {
+    flex-grow: 1;
+    width: 100%;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('o2statusbackground.png');
+    background-size: 100% auto;
+    background-position: center;
+    background-repeat: no-repeat;
+    //background: #000000;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.05);
+    border-radius: 4px;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+
+}
+
+#nav-instructions-box {
+    border: 1px dashed var(--primary-color);
+    background: rgba(0, 240, 255, 0.05); /* Faint cyan glow */
+    padding: 15px;
+}
+
+#nav-instructions-box .instruction-content p {
+    font-size: 0.85em; /* Slightly smaller to fit the panel */
+    line-height: 1.5;
+    color: var(--primary-color);
+    margin: 0;
+    text-align: left;
+}
+
+#nav-instructions-box strong {
+    color: #fff; /* Makes bold words pop */
+    text-shadow: 0 0 5px var(--primary-color);
+}
+
+#terminalLog::after, #commsLog::after {
+    content: "█";
+    margin-left: 5px;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    from, to { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* --- IMAGE SCANLINE EFFECT --- */
+.scanline {
+    width: 100%;
+    height: 100px;
+    z-index: 5;
+    background: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 240, 255, 0.2) 50%,
+        rgba(0, 0, 0, 0) 100%
+    );
+    opacity: 0.3;
     position: absolute;
-    top: 0; left: 0; bottom: 0; right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 10;
-    background-size: 100% 4px, 3px 100%;
+    bottom: 100%;
+    animation: scanlineAnim 2.5s linear infinite;
     pointer-events: none;
 }
 
-#vertical-scanline {
-    position: absolute;
-    top: 0; width: 100%; height: 100px;
-    background: linear-gradient(to bottom, transparent, rgba(0, 240, 255, 0.05), transparent);
-    opacity: 0.1;
-    pointer-events: none;
-    animation: scanline 8s linear infinite;
-    z-index: 11;
+@keyframes scanlineAnim {
+    0% { bottom: 100%; }
+    100% { bottom: -100%; }
 }
 
-@keyframes scanline {
-    0% { top: -100px; }
-    100% { top: 100%; }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- RESPONSIVE ADJUSTMENTS --- */
-@media (max-width: 1024px) {
-    .tactical-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    #console-container { padding: 10px; }
-    .tactical-grid { grid-template-columns: 1fr; }
-    header h1 { font-size: 0.9rem; }
-    #nav-bar { flex-direction: column; gap: 5px; }
-    .nav-btn { width: 100%; padding: 10px 0; }
+/* Ensure the parent containers are set to relative so the scanline stays inside */
+.engine-image-container, 
+.ship-diagram-container {
+    position: relative;
+    overflow: hidden;
 }
