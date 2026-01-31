@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aetherium Dynamics // Pilgrim Ship Console OS v1.2</title>
+
+    <script>
+    // Robust Chrome 93 Compatibility Patch
+    if (!window.structuredClone) {
+        window.structuredClone = function(obj) {
+            if (obj === undefined) return undefined;
+            try {
+                return JSON.parse(JSON.stringify(obj));
+            } catch (e) {
+                console.error("StructuredClone Fallback Failed:", e);
+                return obj; // Return original if parsing fails
+            }
+        };
+    }
+</script>
+
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    
+<script type="module">
+  // FIX: Import the class as a NAMED export, and use the correct name (GoogleGenAI).
+  import { GoogleGenAI } from 'https://esm.sh/@google/genai'; 
+  
+  // Expose it to the window using the exact name your script.js expects
+  window.GoogleGenerativeAI = GoogleGenAI; 
+
+  // IMPORTANT: This ensures initGeminiChat() runs AFTER the main script (script.js) has loaded.
+  window.addEventListener('load', () => {
+    if (window.initGeminiChat) {
+      window.initGeminiChat();
+    }
+  });
+</script>
+
+<script defer src="script.js"></script>
+
+</head>
+<body>
+
+    <div id="console-container">
+        
+       <header>
+            <h1>PILGRIM CLASS FREIGHTER // OPS</h1>
+            <div class="clock"><span id="time">12:11:12 AM</span></div>
+        </header>
+
+        <div id="login-screen">
+    		<div class="login-box">
+        <h2>PILGRIM-OS v1.2: ACCESS CONTROL</h2>
+        <p>PILOT CREDENTIALS REQUIRED TO PROCEED.</p>
+        
+        <label for="login-username">USER ID (USERNAME):</label>
+        <input type="text" id="login-username" placeholder="your name">
+        
+        <label for="login-password">ACCESS KEY (PASSWORD):</label>
+        <input type="password" id="login-password" placeholder="password">
+        
+        <button id="login-button" onclick="handleLoginScreen()">LOG IN</button>
+
+        <div id="login-message" class="error-message"></div>
+        
+        <p class="login-note">Note: If you do not have an account, the system will attempt to create one.</p>
+    </div>
+</div>
+
+        <div id="viewport">
+            
+            <div id="screen-dashboard" class="screen">
+                <div class="dashboard-content-grid">
+                    
+                    <div class="icon-status-grid">
+                        <div class="icon-card" id="hullIconCard">
+                            <span class="icon-symbol">&#9876;</span>
+                            <div class="icon-label">Hull Integrity</div>
+                            <div class="icon-status-text" id="hullStatus">SEAL BREACH</div>
+                        </div>
+                        <div class="icon-card" id="engineIconCard">
+                            <span class="icon-symbol">&#9888;</span>
+                            <div class="icon-label">Engine Core</div>
+                            <div class="icon-status-text" id="engineStatus">CRITICAL FAILURE</div>
+                        </div>
+                        <div class="icon-card" id="o2IconCard">
+                            <span class="icon-symbol">&#67848;</span>
+                            <div class="icon-label">Life Support (O2)</div>
+                            <div class="gauge-container"><div class="gauge-fill" id="o2Gauge"></div></div>
+                            <div class="icon-status-text" id="o2Value">75.0%</div>
+                        </div>
+                        <div class="icon-card" id="commsIconCard">
+                            <span class="icon-symbol">&#9992;</span>
+                            <div class="icon-label">Comms Array</div>
+                            <div class="icon-status-text" id="commsStatus">OFFLINE</div>
+                        </div>
+                        <div class="icon-card" id="coordIconCard">
+                            <span class="icon-symbol">&#9734;</span>
+                            <div class="icon-label">Coordinates</div>
+                            <div class="icon-status-text" id="coordStatus">NAV DATA CORRUPTED</div>
+                        </div>
+                    </div>
+
+                    <div id="log-container">
+                        <pre id="terminalLog">// LOG CLEARED.</pre>
+                        <div class="command-prompt">
+                            <span>></span>
+                            <input type="text" id="commandInput" placeholder="ENTER COMMAND..." onkeydown="if(event.key === 'Enter') executeCommand()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-nav" class="screen">
+                <h2>NAVIGATIONAL CORE // ASTROGATION</h2>
+                
+                <div id="nav-main-grid">
+                    
+                    <div class="nav-left-column">
+    <div class="status-card">
+        <h3>SECTOR MAPPING DATA</h3>
+        <pre id="navScanOutput"></pre>
+    </div>
+
+    <div class="status-card tactical-panel" id="nav-instructions-box" style="margin-top: 20px;">
+        <h3>[ SYSTEM RESET GUIDANCE ]</h3>
+        <div class="instruction-content">
+            <p>To restore flight systems, you must resolve scrambled sector scan data and bypass the <strong>[CORRUPTED]</strong> signals in the navigation grid. Cross-reference the <strong>Sector Mapping Data</strong> with your salvaged <strong>Defrag Clues</strong> to triangulate the ship's true position in space. Once the spatial logic is synthesized, input the sector content data into the <strong>Coordinate Logic System</strong>. Successive attempts will stabilize the sensors and reveal additional defrag clues. </p>
+        </div>
+    </div>
+    </div>
+                    
+                    <div class="nav-right-column">
+                        <div class="status-card">
+                            <h3>DEFRAG CLUES </h3>
+                            <ul id="navClues"></ul>
+                        </div>
+
+                        <div id="navLogicPanel" class="status-card" style="margin-top: 20px;">
+                            <h3>COORDINATE LOGIC SYSTEM</h3>
+                            <p style="font-size: 0.8rem;">Fill in the required coordinates to unlock the final destination input.</p>
+                            <div style="margin-top: 10px;">
+                                <label for="sector2" style="font-size: 0.8rem;">Sector 2 Content:</label>
+                                <input type="text" id="sector2">
+                            </div>
+                            <div style="margin-top: 5px;">
+                                <label for="sector6" style="font-size: 0.8rem;">Sector 6 Content:</label>
+                                <input type="text" id="sector6">
+                            </div>
+                            <div style="margin-top: 5px;">
+                                <label for="sector10" style="font-size: 0.8rem;">Sector 10 Content:</label>
+                                <input type="text" id="sector10">
+                            </div>
+                            <button class="action-btn" onclick="sectorLogicGame()">VERIFY LOGIC</button>
+                        </div>
+
+                        <div id="navFinalPanel" style="display: none; margin-top: 20px;">
+                            <div class="status-card">
+                                <h3>JUMP COORDINATE INPUT</h3>
+                                <p>NAV Core Logic Verified. Enter the 4-digit JUMP Code and press JUMP.</p>
+                                <input type="text" id="finalCoordsInput" placeholder="XXXX" style="width: 150px; margin-top: 10px;">
+                                <button class="action-btn" onclick="accessNav(document.getElementById('finalCoordsInput').value)">INITIATE JUMP</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="screen-personnel" class="screen">
+                <h2>PERSONNEL FILES // CREW ROSTER</h2>
+                <div id="personnel-main-grid">
+                    
+                    <div class="status-card">
+                        <h3>ACTIVE ROSTER</h3>
+                        <ul id="crewList" style="list-style-type: none; padding: 0;"></ul>
+                    </div>
+
+                    <div class="status-card personnel-file-card">
+                        <h3>ACCESS PERSONNEL FILE</h3>
+                        <div class="personnel-content-grid">
+                            <div class="personnel-photo-area">
+                                <div id="photoContainer">
+                                    <img id="personnelPhoto" src="corp_logo.gif" alt="Crew Photo">
+                                </div>
+                                <div class="access-controls">
+                                    <input type="text" id="personnelIdInput" placeholder="ENTER ID (1-12)">
+                                    <button class="action-btn" onclick="getPersonnelFile(document.getElementById('personnelIdInput').value)">ACCESS</button>
+                                </div>
+                            </div>
+                            <div class="personnel-text-display">
+                                <pre id="personnelFileDisplay">// ENTER ID TO RETRIEVE FILE...</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-engineering" class="screen full-height-flex active">
+    <h2>// TACTICAL OVERLAY: BRIDGE VIEW</h2>
+    
+    <div class="tactical-grid">
+	<div class="status-card tactical-panel">
+            <h3>[ ENGINES STATUS ]</h3>
+            <div class="ship-diagram-container">
+    <div class="engine-image-container">
+        <div class="scanline"></div> <img src="enginesdamaged.gif" alt="Engines Status" id="engines-status-image">
+    </div>
+</div>
+        </div>
+
+        <div class="status-card tactical-panel">
+    <h3>[ SCANNER: DUAL PHASE ]</h3>
+    	<div class="dual-radar-container">
+        <div class="radar-wrapper">
+            <div id="radar-custom" class="radar-cyan">
+                <div id="targets-custom"></div>
+            </div>
+        </div>
+        <div class="radar-wrapper">
+            <div id="radar-custom" class="radar-red">
+                <div id="targets-custom" class="targets-red"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <div class="status-card tactical-panel">
+            <h3>[ FEED 01: CARGO BAY ]</h3>
+            <div class="video-placeholder">
+    		<div class="rec-dot"></div> <img src="Cargobay.gif" alt="Security Feed" style="width: 100%; height: 100%; object-fit: cover;">
+</div>
+        </div>
+    
+    	<div class="status-card tactical-panel">
+    		<h3>[ SYSTEM TOPOLOGY ]</h3>
+    
+    	<div class="ship-diagram-container">
+        <div class="scanline"></div> <img id="ship-status-image" src="shipimage1.gif" alt="Ship Status">
+    </div>
+</div>
+
+        <div class="status-card tactical-panel">
+            <h3>[ LIFE SUPPORT ]</h3>
+            <div class="power-load-container">
+        <div id="o2PercentageCounter" style="position: absolute; top: 58%; left: 50%; transform: translate(-50%, -50%); color: var(--primary-color); font-family: 'Space Mono', monospace; font-size: 1.1em; text-align: center; width: 100%;">--:--</div>
+
+        <svg width="140px" height="140px" viewBox="-100 -100 200 200">
+            <mask id="progress-mask">
+                <rect x="-100" y="-100" width="200" height="200" fill="#000" />
+                <circle id="o2ProgressRing" r="96" fill="none" stroke="#fff" stroke-width="7" stroke-dasharray="100 100" stroke-dashoffset="100" pathLength="100" />
+            </mask>
+
+        <circle class="outer_circle" cx="0" cy="0" r="99" pathLength="64" />
+        <circle class="outer_circle_bars_l" cx="0" cy="0" r="96" pathLength="64" />
+        <circle class="outer_circle_bars_r" cx="0" cy="0" r="96" pathLength="64" />
+
+        <circle class="inner_progress_circle" mask="url(#progress-mask)" cx="0" cy="0" r="96" pathLength="64" transform="rotate(-90 0 0)" />
+
+        <circle class="inner_half_circle" cx="0" cy="0" r="80" pathLength="50" />
+        <circle class="center_outer_circle" cx="0" cy="0" r="73" pathLength="50" />
+        <circle class="center_inner_circle_second" cx="0" cy="0" r="67" pathLength="100" />
+        <circle class="center_inner_circle_3" cx="0" cy="0" r="65" pathLength="100" />
+        <circle class="center_inner_circle_3_dashed_verticle" cx="0" cy="0" r="61" pathLength="64" />
+        <circle class="center_inner_circle_3_dashed" cx="0" cy="0" r="61" pathLength="100" />
+        <circle class="center_inner_circle_2" cx="0" cy="0" r="58" pathLength="100" />
+        <circle class="center_inner_circle_1" cx="0" cy="0" r="55" pathLength="100" />
+        <circle class="center_inner_circle_0" cx="0" cy="0" r="35" pathLength="40" />
+        
+        <g class="small_rectangles_group">
+            <rect class="small_rectangles" x="-1.5" y="-68" width="4" height="4" rx="1" />
+            <rect class="small_rectangles" x="-2.5" y="64" width="4" height="4" rx="1" />
+            <rect class="small_rectangles" x="-68" y="-2.5" width="4" height="4" rx="1" />
+            <rect class="small_rectangles" x="64" y="-1.5" width="4" height="4" rx="1" />
+        </g>
+    </svg>
+</div>
+</div>
+
+	<div class="status-card tactical-panel">
+            <h3>[ FEED 02: ENGINE ROOM ]</h3>
+            <div class="video-placeholder">
+    		<div class="rec-dot"></div> <img src="EngineRoom.gif" alt="Security Feed" style="width: 100%; height: 100%; object-fit: cover;">
+</div>
+        </div>
+
+        
+    </div>
+</div>
+
+<div id="screen-comms" class="screen full-height-flex comms-grid">
+    <h2>// COMMS ARRAY: SIGNAL INTERCEPT</h2>
+    
+    <div id="commsTerminalWrapper" class="comms-panel status-card">
+        <h3>// COMMS CONSOLE</h3> 
+        
+        <div id="commsLogContainer" class="log-container"> 
+            <pre id="commsLog">// COMMS CONSOLE ONLINE. TYPE 'HELP' FOR COMMANDS.</pre>
+            <div class="command-prompt">
+                <span>></span>
+                <input type="text" id="commsInput" placeholder="ENTER COMMAND (e.g., SCAN, HELP)..." onkeydown="if(event.key === 'Enter') executeCommsCommand()">
+            </div>
+        </div>
+    </div>
+</div>
+            </div> 
+<nav id="nav-bar">
+    <button class="nav-btn glitch" data-text="Personnel" onclick="switchScreen('personnel')">PERSONNEL</button>
+    <button class="nav-btn glitch" data-text="Comms" onclick="switchScreen('comms')">COMMS</button>
+    <button class="nav-btn glitch active" data-text="Tactical" onclick="switchScreen('engineering')">TACTICAL</button>
+</nav>
+    </div> <div id="vertical-scanline"></div>
+
+</body>
+</html>
