@@ -747,7 +747,7 @@ function updateAuthState(userId) {
         // OLD: loadInitialData(userId) call removed. State is handled globally by startSharedStateSync.
         
         // Set the initial screen based on device type (NEW LOGIC)
-        const startScreen = isMobileDevice() ? 'personnel' : 'dashboard'; 
+        const startScreen = 'personnel';
         switchScreen(startScreen); 
         
     } else {
