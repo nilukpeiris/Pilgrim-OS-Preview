@@ -174,7 +174,7 @@
                 </div>
             </div>
 
-            <div id="screen-personnel" class="screen">
+            <div id="screen-personnel" class="screen active">
                 <h2>PERSONNEL FILES // CREW ROSTER</h2>
                 <div id="personnel-main-grid">
                     
@@ -203,7 +203,7 @@
                 </div>
             </div>
 
-            <div id="screen-engineering" class="screen full-height-flex active">
+            <div id="screen-engineering" class="screen full-height-flex">
     <h2>// TACTICAL OVERLAY: BRIDGE VIEW</h2>
     
     <div class="tactical-grid">
@@ -312,9 +312,11 @@
 </div>
             </div> 
 <nav id="nav-bar">
-    <button class="nav-btn glitch" data-text="Personnel" onclick="switchScreen('personnel')">PERSONNEL</button>
+    <button class="nav-btn glitch" data-text="Status" onclick="switchScreen('dashboard')" disabled style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">STATUS</button>
+    <button class="nav-btn glitch" data-text="NavCore" onclick="switchScreen('nav')" disabled style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">NavCORE</button>
+    <button class="nav-btn glitch active" data-text="Personnel" onclick="switchScreen('personnel')">PERSONNEL</button>
     <button class="nav-btn glitch" data-text="Comms" onclick="switchScreen('comms')">COMMS</button>
-    <button class="nav-btn glitch active" data-text="Tactical" onclick="switchScreen('engineering')">TACTICAL</button>
+    <button class="nav-btn glitch" data-text="Tactical" onclick="switchScreen('engineering')">TACTICAL</button>
 </nav>
     </div> <div id="vertical-scanline"></div>
 
